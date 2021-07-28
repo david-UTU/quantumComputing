@@ -1,0 +1,36 @@
+def predictNumber[n:!ℕ](f:!(const uint[n] !-> 𝔹)):!ℕ {
+	qr := 0:uint[n];
+
+	// Put the register in superposition
+	for i in [0..n) { qr[i] := H(qr[i]); }
+
+	// Call BlackBox function
+	measure(f(qr));
+
+	// Collapse the wave-function
+	for i in [0..n) { qr[i] := H(qr[i]); }
+
+	// Measure the result
+	return measure(qr) as !ℕ;
+}
+
+def main() {
+	// Generate a random number
+	key := measure(H(0:𝔹), H(0:𝔹), H(0:𝔹), H(0:𝔹), H(0:𝔹)) as !uint[5];
+
+	// Lambda function for creating the oracle (BlackBox function)
+	createOracle := lambda[n:!ℕ](key:!uint[n])(const x:uint[n]):𝔹 {
+		anc := H(X(0:𝔹));
+
+		// Phase kick-back induced on data qubits using ancilla qubit.
+		for i in [0..n) {
+			anc xorb= key[i] & x[i];
+		}
+
+		return anc;
+	};
+
+	f := createOracle(key);
+
+	return (key, predictNumber(f));
+}
